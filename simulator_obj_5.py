@@ -200,7 +200,7 @@ class LegIdentifier:
 
 
 class ExcelWriter:
-    def __init__(self, filename="temp.xlsx"):
+    def __init__(self, filename):
         self.filename = filename
         self.writer = None
         self.book = None
@@ -232,12 +232,11 @@ class ExcelWriter:
         self.writer.close()
 
 
-
 class Analysis:
     def __init__(self, dataframe):
         self.df = dataframe
-        self.legs = []  # To store leg information
-        self.excel_writer = ExcelWriter()  # Initialize the ExcelWriter here
+        self.legs = []
+        self.excel_writer = None
 
     def _identify_legs(self):
         leg_identifier = LegIdentifier(self.df)
@@ -253,12 +252,26 @@ class Analysis:
         today_date = datetime.today().strftime('%Y%m%d')
         filename_parts = [today_date]
 
-        # 2. Ask if we want maneuvers analyzed or not
+        # 2. Ask input questions and append filename components accordingly
         analyze_maneuvers = input("Do you want to analyze maneuvers? (yes/no): ").lower()
         if analyze_maneuvers == "yes":
-            maneuvers = Maneuver(self.df)  # Instantiate the Maneuver class only when needed
+            filename_parts.append("Maneuver")
 
-            filename_parts.append("maneuver")
+        highlight_vmg = input("Do you want to highlight VMG? (yes/no): ").lower()
+        if highlight_vmg == "yes":
+            filename_parts.append("VMG")
+            per_leg_or_overall = input(
+                "Do you want to save VMG highlights for each leg or overall? (leg/overall): ").lower()
+            avg_or_whole = input(
+                "Do you want to output the average of each column or the whole data sequence? (average/whole): ").lower()
+
+        filename = "_".join(filename_parts) + ".xlsx"
+        self.excel_writer = ExcelWriter(os.path.join(output_path, filename))
+
+        # 3. Conduct the required analyses
+        if analyze_maneuvers == "yes":
+            maneuvers = Maneuver(self.df)
+
             gybes, tacks = maneuvers.gybes, maneuvers.tacks
 
             # Sort maneuvers by VMG loss
@@ -270,18 +283,10 @@ class Analysis:
             for i, (_, _, _, data) in enumerate(tacks, start=1):
                 self.excel_writer.write_data(data, f"Tack{i}")
 
-            # Plot graph
             maneuvers.plot_meters_lost()
 
-        # 3. Ask if we want to highlight VMG
-        highlight_vmg = input("Do you want to highlight VMG? (yes/no): ").lower()
         if highlight_vmg == "yes":
             vmg_highlighter = VMG_Highlighter(self.df)
-            filename_parts.append("VMG")
-            per_leg_or_overall = input(
-                "Do you want to save VMG highlights for each leg or overall? (leg/overall): ").lower()
-            avg_or_whole = input(
-                "Do you want to output the average of each column or the whole data sequence? (average/whole): ").lower()
 
             if per_leg_or_overall == 'leg':
                 self._identify_legs()
@@ -304,8 +309,6 @@ class Analysis:
                     if data is not None:
                         self.excel_writer.write_data(data, f"VMGHighlight{direction}{idx}")
 
-        filename = "_".join(filename_parts) + ".xlsx"
-        self.excel_writer.set_filename(os.path.join(output_path, filename))
         self.excel_writer.save()
         print("Data has been saved successfully!")
 
