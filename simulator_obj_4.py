@@ -161,105 +161,42 @@ class VMG_Highlighter:
         return self.best_vmg_highlights()
 
 
-class SailAnalysis:
+class LegIdentifier:
+    def __init__(self, dataframe):
+        self.df = dataframe
+        self.legs = []  # A list to store the starting and ending indices of each leg
 
-    def __init__(self):
-        self.source_file_path = self.get_input("Enter the path of the .xlsx file to analyze: ", default="Run_231014112244.xlsx")
-        self.save_path = self.get_input("Enter the path where the new file should be saved (without extension or press Enter for current directory): ", default=os.path.join(os.getcwd(), "result"))
-        self.save_manoeuvres = self.get_input("Do you want to save manoeuvres (gybes/tacks) to the Excel file? (yes/no): ").lower() == 'yes'
-        self.save_vmg_highlights = self.get_input("Do you want VMG highlights in the Excel file? (yes/no): ").lower() == 'yes'
-        self.vmg_highlight_choice = self.get_input("Do you want VMG highlights for each leg or overall best VMG? (leg/overall): ") if self.save_vmg_highlights else 'none'
-        self.overall_data_or_avg = self.input_overall_or_average()
+    def _check_section(self, start_idx, twa_range, section_length=300):  # 10-second section at 30Hz
+        twa_values = self.df.iloc[start_idx:start_idx + section_length]['Boat.TWA'].abs().values
+        return all(twa_range[0] <= twa <= twa_range[1] for twa in twa_values)
 
-        self.data_analyzer = DataAnalyzer(self.source_file_path)
-        self.maneuver = Maneuver(self.data_analyzer.df)
-        self.vmg_highlighter = VMG_Highlighter(self.data_analyzer.df)
+    def identify_legs(self):
+        idx = 2100  # Starting index after the initial 2100 rows
+        current_leg_start = idx
+        current_direction = None
 
-    @staticmethod
-    def get_input(prompt, default=None):
-        response = input(prompt)
-        return response if response else default
+        while idx < len(self.df) - 300:  # Ensure there's always a 10-second section ahead to check
+            if current_direction is None or current_direction == "downwind":
+                # Check if it's an upwind leg
+                if self._check_section(idx, (0, 90)):
+                    if current_direction is not None:
+                        self.legs.append((current_leg_start, idx))
+                    current_leg_start = idx
+                    current_direction = "upwind"
 
-    def input_overall_or_average(self):
-        choice = ""
-        while choice not in ['overall', 'average']:
-            choice = input("Do you want to get overall data or average? (overall/average): ").strip().lower()
-        self.overall_data_or_avg = choice
-        print(f"Selected: {self.overall_data_or_avg}")
+            if current_direction == "upwind":
+                # Check if it's a downwind leg
+                if self._check_section(idx, (90, 179)):
+                    self.legs.append((current_leg_start, idx))
+                    current_leg_start = idx
+                    current_direction = "downwind"
 
-    def run_analysis(self):
-        self.data_analyzer.remove_tgt_columns()
+            idx += 1
 
-        filename_suffix = ''
-        gybes, tacks = [], []
-        if self.save_manoeuvres:
-            filename_suffix += "_Manoeuvres"
+        # Add the last leg if the data ends before switching the leg
+        if current_leg_start < len(self.df) - 1:
+            self.legs.append((current_leg_start, len(self.df) - 1))
 
-            # THIS IS WHERE YOU WOULD CALL save_maneuvers
-            m = Maneuver(self.data_analyzer.df)
-            m.save_maneuvers()
-            # END OF INSERTED CODE
-
-            gybes, tacks = self.maneuver.identify_gybes_and_tacks()
-            print(f"Identified {len(gybes)} gybes and {len(tacks)} tacks.")
-
-        vmg_highlights = None
-        upwind_best, downwind_best = None, None
-        if self.vmg_highlight_choice == 'leg':
-            filename_suffix += "_LegVMG"
-            vmg_highlights = self.vmg_highlighter.best_vmg_highlights()
-        elif self.vmg_highlight_choice == 'overall':
-            filename_suffix += "_OverallVMG"
-            upwind_best, downwind_best = self.vmg_highlighter.best_overall_vmg_highlights()
-
-        final_save_path = f"{self.save_path}{filename_suffix}.xlsx"
-        self.save_to_excel(final_save_path, gybes, tacks, vmg_highlights, upwind_best, downwind_best)
-
-        print(f"Analysis complete. Results saved in '{final_save_path}'.")
-
-        # Here, plot the graph
-        if self.save_manoeuvres:  # Only plot if the maneuvers are being saved
-            self.maneuver.plot_meters_lost()
-
-    def save_to_excel(self, path, gybes, tacks, vmg_highlights, upwind_best, downwind_best):
-        with pd.ExcelWriter(path) as writer:
-            # Save gybes
-            if gybes:
-                for i, (time, _, _, maneuver_data) in enumerate(gybes, start=1):
-                    maneuver_data.to_excel(writer, sheet_name=f'Gybe{i}', index=False)
-
-            # Save tacks
-            if tacks:
-                for i, (time, _, _, maneuver_data) in enumerate(tacks, start=1):
-                    maneuver_data.to_excel(writer, sheet_name=f'Tack{i}', index=False)
-
-            # Save VMG highlights
-            if vmg_highlights is not None:
-                leg_numbers = vmg_highlights['Leg'].unique()
-                for leg_number in leg_numbers:
-                    leg_data = vmg_highlights[vmg_highlights['Leg'] == leg_number]
-
-                    if self.overall_data_or_avg == 'average':
-                        leg_data = pd.DataFrame(leg_data.mean()).transpose()
-
-                    leg_data.to_excel(writer, sheet_name=f'Leg_{leg_number}_VMG_Highlight', index=False)
-
-            # Save overall best VMG
-            if upwind_best is not None:
-                if self.overall_data_or_avg == "overall":
-                    upwind_best.to_excel(writer, sheet_name='Upwind_Overall_VMG_Highlight', index=False)
-                else:  # save just the averages (last row)
-                    avg_values = upwind_best.tail(1)
-                    avg_values.to_excel(writer, sheet_name='Upwind_Overall_VMG_Highlight', index=False)
-
-            if downwind_best is not None:
-                if self.overall_data_or_avg == "overall":
-                    downwind_best.to_excel(writer, sheet_name='Downwind_Overall_VMG_Highlight', index=False)
-                else:  # save just the averages (last row)
-                    avg_values = downwind_best.tail(1)
-                    avg_values.to_excel(writer, sheet_name='Downwind_Overall_VMG_Highlight', index=False)
+        return self.legs
 
 
-if __name__ == "__main__":
-    analysis = SailAnalysis()
-    analysis.run_analysis()
