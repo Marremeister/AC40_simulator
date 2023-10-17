@@ -64,9 +64,9 @@ class Plotter:
     def set_plot_style(self, style):
         self.plot_style = style
 
-
-    def plot_subplots(self, y_columns, maneuver_df, maneuver_type, rows=1, cols=3):
-        fig, axs = plt.subplots(rows, cols, figsize=(cols * 5, rows * 5))  # Adjust the figsize to your liking
+    def plot_subplots(self, y_columns, maneuver_df, maneuver_type, rows=1, cols=3, fig=None, axs=None):
+        if fig is None or axs is None:
+            fig, axs = plt.subplots(rows, cols, figsize=(cols * 5, rows * 5))  # Adjust the figsize to your liking
 
         for idx, column in enumerate(y_columns):
             i, j = divmod(idx, cols)
@@ -76,12 +76,24 @@ class Plotter:
                                                 title=f"{maneuver_type.capitalize()} - {column}",
                                                 xlabel=self.xlabel,
                                                 ylabel=self.ylabel,
-                                                ax=axs[i, j] if rows > 1 else axs[j])
+                                                ax=axs[j] if (rows == 1 or cols == 1) else axs[i, j])
                 single_column_plotter.add_line(y_values, label=column)
                 single_column_plotter.plot()
 
         plt.tight_layout()
         plt.show()
+
+    def plot_combined(self, y_columns, maneuver_df, title, xlabel="Time"):
+        fig, ax = plt.subplots(figsize=(10, 5))
+        for column in y_columns:
+            if column in maneuver_df.columns:
+                y_values = maneuver_df[column]
+                self.add_line(y_values, label=column)
+
+        self.title = title
+        self.xlabel = xlabel
+        self.ax = ax
+        self.plot()
 
 
     @staticmethod

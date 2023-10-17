@@ -2,6 +2,11 @@ from PlotterClass import Plotter
 import pandas as pd
 from tqdm import tqdm
 
+
+#TODO - VMG och boatspeed
+#TODO - Enskilda grafer på roder, heel, travare
+#TODO - heel - travare samma
+
 class Maneuver:
     def __init__(self, dataframe):
         self.df = dataframe
@@ -105,7 +110,8 @@ class Maneuver:
         tack_plotter.add_line(tack_losses, label="Tack Loss")
         tack_plotter.plot()
 
-    def plot_best_maneuver(self, maneuver_type, y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.FoilPort.Cant", "Boat.FoilStbd.Cant"]):
+    def plot_best_maneuver(self, maneuver_type, y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.FoilPort.Cant",
+                                      "Boat.FoilStbd.Cant", "Boat.Rudder.Angle"]):
         """
         Plots the best maneuver (tack or gybe) based on minimum VMG loss.
 
@@ -143,22 +149,19 @@ class Maneuver:
             x_values = maneuver_df["Time"]
 
             # Create the Plotter instance
-            plotter = Plotter(x_values=x_values,
-                              title=f"{maneuver_type.capitalize()} Maneuver",
-                              xlabel="Time",
-                              ylabel="Value")
+            plotter = Plotter(x_values=x_values, xlabel="Time", ylabel="Value")
 
-            # Plot the individual subplots
-            rows, cols = Plotter.determine_subplot_dimensions(len(y_columns))
-            plotter.plot_subplots(y_columns, maneuver_df, maneuver_type, rows, cols)
+            # Plot VMG and Boat speed together
+            plotter.plot_subplots(["Boat.VMG_kts", "Boat.Speed_kts"], maneuver_df, "VMG & Boat Speed")
 
-            # Plot all columns together
+            # Plot Heel and Traveler together
+            if "Boat.Heel" in maneuver_df.columns and "Boat.Aero.MainTraveller" in maneuver_df.columns:
+                plotter.plot_subplots(["Boat.Heel", "Boat.Aero.MainTraveller"], maneuver_df, "Heel & Traveler")
+
+            # Plot all columns individually
             for column in y_columns:
                 if column in maneuver_df.columns:
-                    y_values = maneuver_df[column]
-                    plotter.add_line(y_values, label=column)
-
-            plotter.plot()
+                    plotter.plot_subplots([column], maneuver_df, column)
 
         else:
             print(f"No best {maneuver_type} found in maneuvers.")
