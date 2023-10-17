@@ -5,6 +5,7 @@ from VMGHighligherClass import VMG_Highlighter
 import os
 import pandas as pd
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 
 class Analysis:
@@ -67,8 +68,11 @@ class Analysis:
             maneuvers.plot_best_maneuver("tack")
         elif plot_best_maneuver == "gybe":
             maneuvers.plot_best_maneuver("gybe")
+        if plot_best_maneuver != "no":
+            plt.show()
 
         maneuvers.plot_meters_lost()
+        plt.show()
 
     def _highlight_vmg(self):
         vmg_highlighter = VMG_Highlighter(self.df)
@@ -92,6 +96,8 @@ class Analysis:
         elif plot_vmg_high == "both":
             vmg_highlighter.plot_vmg_segment(overall_highlights[0], "Upwind VMG-high")
             vmg_highlighter.plot_vmg_segment(overall_highlights[1], "Downwind VMG-high")
+        if plot_vmg_high != "no":
+            plt.show()
 
 
         # If user wants VMG highlights for each leg, then calculate and save those as well

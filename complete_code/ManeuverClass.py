@@ -1,6 +1,7 @@
 from PlotterClass import Plotter
 import pandas as pd
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 #TODO - VMG och boatspeed
@@ -110,7 +111,8 @@ class Maneuver:
         tack_plotter.add_line(tack_losses, label="Tack Loss")
         tack_plotter.plot()
 
-    def plot_best_maneuver(self, maneuver_type, y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.FoilPort.Cant",
+    def plot_best_maneuver(self, maneuver_type,
+                           y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.FoilPort.Cant",
                                       "Boat.FoilStbd.Cant", "Boat.Rudder.Angle"]):
         """
         Plots the best maneuver (tack or gybe) based on minimum VMG loss.
@@ -143,25 +145,24 @@ class Maneuver:
             end_row = start_row + len(df)
             maneuver_df = self.df.iloc[start_row:end_row].copy()
 
-            if "Boat.TWA" in maneuver_df.columns:
-                maneuver_df["Boat.TWA"] = maneuver_df["Boat.TWA"].abs()
+            # Convert VMG to absolute value
+            if "Boat.VMG_kts" in maneuver_df.columns:
+                maneuver_df["Boat.VMG_kts"] = maneuver_df["Boat.VMG_kts"].abs()
 
-            x_values = maneuver_df["Time"]
+            combined_columns = [["Boat.VMG_kts", "Boat.Speed_kts"], ["Boat.Heel", "Boat.Aero.MainTraveller"]]
 
-            # Create the Plotter instance
-            plotter = Plotter(x_values=x_values, xlabel="Time", ylabel="Value")
+            # Use the Plotter to plot everything in one subplot setup
+            plotter_instance = Plotter(maneuver_df["Time"])
 
-            # Plot VMG and Boat speed together
-            plotter.plot_subplots(["Boat.VMG_kts", "Boat.Speed_kts"], maneuver_df, "VMG & Boat Speed")
+            # Determine subplot dimensions and create fig and axs objects
+            n = len(y_columns)  # Number of plots
+            rows, cols = Plotter.determine_subplot_dimensions(n)
+            fig, axs = plt.subplots(rows, cols, figsize=(15, 10))  # Adjust figsize as necessary
 
-            # Plot Heel and Traveler together
-            if "Boat.Heel" in maneuver_df.columns and "Boat.Aero.MainTraveller" in maneuver_df.columns:
-                plotter.plot_subplots(["Boat.Heel", "Boat.Aero.MainTraveller"], maneuver_df, "Heel & Traveler")
+            plotter_instance.plot_subplots(y_columns, maneuver_df, maneuver_type, rows, cols, fig, axs)
 
-            # Plot all columns individually
-            for column in y_columns:
-                if column in maneuver_df.columns:
-                    plotter.plot_subplots([column], maneuver_df, column)
+            for column in combined_columns:
+                plotter_instance.plot_combined(column, maneuver_df, f"{maneuver_type.capitalize()} - {' & '.join(column)}")
 
         else:
             print(f"No best {maneuver_type} found in maneuvers.")

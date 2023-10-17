@@ -1,6 +1,7 @@
 from DataReaderClass import DataAnalyzer
 from AnalysisClass import Analysis
 
+
 if __name__ == "__main__":
     input_path = input("Enter path to file to analyze: ")
     if not input_path:
