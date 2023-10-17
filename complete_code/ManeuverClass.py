@@ -149,7 +149,7 @@ class Maneuver:
             if "Boat.VMG_kts" in maneuver_df.columns:
                 maneuver_df["Boat.VMG_kts"] = maneuver_df["Boat.VMG_kts"].abs()
 
-            combined_columns = [["Boat.VMG_kts", "Boat.Speed_kts"], ["Boat.Heel", "Boat.Aero.MainTraveller"]]
+            combined_columns = [["Boat.VMG_kts", "Boat.Speed_kts"], ["Boat.Heel", "Boat.Aero.MainTraveller", "Boat.Trim"]]
 
             # Use the Plotter to plot everything in one subplot setup
             plotter_instance = Plotter(maneuver_df["Time"])
