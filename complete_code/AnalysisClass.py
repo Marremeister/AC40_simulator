@@ -5,7 +5,7 @@ from VMGHighligherClass import VMG_Highlighter
 import os
 import pandas as pd
 from datetime import datetime
-import matplotlib.pyplot as plt
+
 
 
 class Analysis:
@@ -59,20 +59,9 @@ class Analysis:
             self.excel_writer.write_data(data, f"Gybe{i}")
         for i, (_, _, _, data) in enumerate(tacks, start=1):
             self.excel_writer.write_data(data, f"Tack{i}")
-
-        plot_best_maneuver = input("Should we plot the best tack and gybe? (no, both, gybe or tack) ").lower()
-        if plot_best_maneuver == "both":
-            maneuvers.plot_best_maneuver("tack")
-            maneuvers.plot_best_maneuver("gybe")
-        elif plot_best_maneuver == "tack":
-            maneuvers.plot_best_maneuver("tack")
-        elif plot_best_maneuver == "gybe":
-            maneuvers.plot_best_maneuver("gybe")
-        if plot_best_maneuver != "no":
-            plt.show()
-
-        maneuvers.plot_meters_lost()
-        plt.show()
+        want_to_plot_maneuvers = input("Do you want to plot maneuvers? (yes/no) > ")
+        if want_to_plot_maneuvers == "yes":
+            maneuvers.plot_maneuvers()
 
     def _highlight_vmg(self):
         vmg_highlighter = VMG_Highlighter(self.df)
@@ -96,8 +85,6 @@ class Analysis:
         elif plot_vmg_high == "both":
             vmg_highlighter.plot_vmg_segment(overall_highlights[0], "Upwind VMG-high")
             vmg_highlighter.plot_vmg_segment(overall_highlights[1], "Downwind VMG-high")
-        if plot_vmg_high != "no":
-            plt.show()
 
 
         # If user wants VMG highlights for each leg, then calculate and save those as well

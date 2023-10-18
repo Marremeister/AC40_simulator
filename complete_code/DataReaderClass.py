@@ -16,3 +16,7 @@ class DataAnalyzer:
     def remove_tgt_columns(self):
         tgt_columns = [col for col in self.df.columns if "Tgt" in col]
         self.df.drop(columns=tgt_columns, inplace=True)
+
+    def convert_to_absolute(self):
+        self.df['Boat.VMG_kts'] = self.df['Boat.VMG_kts'].abs()
+        self.df['Boat.TWA'] = self.df['Boat.TWA'].abs()

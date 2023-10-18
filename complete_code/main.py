@@ -13,6 +13,7 @@ if __name__ == "__main__":
     # Remove the Tgt columns (if necessary)
     data_analyzer.remove_tgt_columns()
 
+
     # Step 2: Now use the processed dataframe to initialize the Analysis class and start the analysis
     analysis = Analysis(data_analyzer.df)
     analysis.start()

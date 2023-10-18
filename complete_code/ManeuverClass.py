@@ -59,8 +59,8 @@ class Maneuver:
                         maneuver_type = None  # reset for the next round
 
         # Store maneuvers in self.tacks and self.gybes
-        self.gybes = [m for m in maneuvers if m[1] == 'Gybe']
-        self.tacks = [m for m in maneuvers if m[1] == 'Tack']
+        self.gybes =  sorted([m for m in maneuvers if m[1] == 'Gybe'], key=lambda x: x[2])
+        self.tacks = sorted([m for m in maneuvers if m[1] == 'Tack'], key=lambda x: x[2])
 
     def _compute_vmg_loss(self, start_idx, end_idx):
         baseline_vmg = self.df.at[start_idx - 30, 'Boat.VMG_kts'] * 0.51444  # converting knots to m/s
@@ -113,28 +113,21 @@ class Maneuver:
 
     def plot_best_maneuver(self, maneuver_type,
                            y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.FoilPort.Cant",
-                                      "Boat.FoilStbd.Cant", "Boat.Rudder.Angle"]):
-        """
-        Plots the best maneuver (tack or gybe) based on minimum VMG loss.
-
-        Args:
-        - maneuver_type (str): either 'tack' or 'gybe'
-        - y_columns (list): list of columns to be plotted along y-axis
-        """
-
+                                      "Boat.FoilStbd.Cant", "Boat.Rudder.Angle", "Boat.trim"], display_all="best"):
         # Select the maneuver list based on the type
         maneuvers = self.gybes if maneuver_type == "gybe" else self.tacks
 
+        if display_all == "all":
+            for maneuver in maneuvers:
+                self.plot_best_maneuver_help(maneuver, y_columns, maneuver_type)
+                plt.show()
+        else:
         # Determine the best maneuver based on VMG loss
-        best_maneuver = None
-        best_value = float('inf')
+            self.plot_best_maneuver_help(maneuvers[0], y_columns, maneuver_type)
+            plt.show()
 
-        for maneuver in maneuvers:
-            current_value = maneuver[2]
-            if current_value < best_value:
-                best_value = current_value
-                best_maneuver = maneuver
 
+    def plot_best_maneuver_help(self, best_maneuver, y_columns, maneuver_type):
         if best_maneuver:
             start_time, _, _, df = best_maneuver
 
@@ -166,3 +159,88 @@ class Maneuver:
 
         else:
             print(f"No best {maneuver_type} found in maneuvers.")
+
+    def plot_best_to_worst_maneuver(self, maneuver_type,
+                                    y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel",
+                                               "Boat.Rudder.Angle", "Boat.Trim"]):
+        maneuvers = self.gybes if maneuver_type == "gybe" else self.tacks
+
+        # Check if maneuvers list has elements before accessing its indices
+        if not maneuvers:
+            print(f"No maneuvers found for {maneuver_type}")
+            return
+
+        best_maneuver = maneuvers[0]
+        worst_maneuver = maneuvers[-1]
+
+        best_maneuver = list(best_maneuver)
+        worst_maneuver = list(worst_maneuver)
+
+        best_maneuver_length = len(best_maneuver[3])
+        worst_maneuver_length = len(worst_maneuver[3])
+
+        shortest_length = min(best_maneuver_length, worst_maneuver_length)
+
+        # Copy data before modifying it to prevent SettingWithCopyWarning
+        best_data_copy = best_maneuver[3].copy()
+        worst_data_copy = worst_maneuver[3].copy()
+
+        best_data_copy = best_data_copy.iloc[:shortest_length]
+        worst_data_copy = worst_data_copy.iloc[:shortest_length]
+
+        best_start_time = best_data_copy['Time'].iloc[0]
+        worst_start_time = worst_data_copy['Time'].iloc[0]
+
+        best_data_copy['Time'] = best_data_copy['Time'] - best_start_time
+        worst_data_copy['Time'] = worst_data_copy['Time'] - worst_start_time
+
+        fig, axs = plt.subplots(len(y_columns), 1, figsize=(10, 20))
+
+        for idx, col in enumerate(y_columns):
+            plotter = Plotter(x_values=best_data_copy['Time'], ax=axs[idx])
+            plotter.add_line(best_data_copy[col], label=f"Best {maneuver_type}")
+            plotter.add_line(worst_data_copy[col], label=f"Worst {maneuver_type}")
+            plotter.set_plot_style("line")
+            plotter.title = f"{col} for Best vs Worst {maneuver_type}"
+            plotter.xlabel = "Time"
+            plotter.ylabel = col
+            plotter.plot()
+
+        plt.tight_layout()
+        plt.show()
+
+    def plot_maneuvers(self):
+        plot_all = input("Do you want to plot all types of graphs? (yes or no) > ")
+        if plot_all == "yes":
+            self.plot_meters_lost()
+            self.plot_best_maneuver("tack")
+            self.plot_best_maneuver("gybe")
+            self.plot_best_to_worst_maneuver("tack")
+            self.plot_best_to_worst_maneuver("gybe")
+
+        plot_meters = input("Do you want to plot meters lost? (yes/no) > ")
+        if plot_meters == "yes":
+            self.plot_meters_lost()
+
+        plot_maneuvers = input("Do you want to plot individual tacks/gybes? (yes/no) > ")
+        if plot_maneuvers == "yes":
+            plot_tack_or_gybe = input("Do you want to plot tacks or gybes or both? (tack/gybe/both) > ")
+            plot_all_maneuvers = input("Do you want to plot all tacks/gybes or only the best? (all, best) >")
+            if plot_tack_or_gybe != "both":
+                self.plot_best_maneuver(plot_tack_or_gybe, display_all=plot_all_maneuvers)
+            else:
+                self.plot_best_maneuver("tack", display_all=plot_all_maneuvers)
+                self.plot_best_maneuver("gybe", display_all=plot_all_maneuvers)
+
+        plot_differences = input("Do you want to plot the best and worst gybes/tacks next to eachother? (yes/no) > ")
+        if plot_differences == "yes":
+            tack_or_gybe = input("Tacks or gybes or both? (tack/gybe/both) > ")
+            if tack_or_gybe != "both":
+                self.plot_best_to_worst_maneuver(tack_or_gybe)
+            else:
+                self.plot_best_to_worst_maneuver("tack")
+                self.plot_best_to_worst_maneuver("gybe")
+
+
+
+
