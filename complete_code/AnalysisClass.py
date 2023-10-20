@@ -76,17 +76,6 @@ class Analysis:
             if data is not None:
                 self.excel_writer.write_data(data, f"OverallVMGHighlight{idx}")
 
-        plot_vmg_high = input("Do you want to plot parameters from the VMG highlight answer: no, upwind, downwind, both ")
-
-        if plot_vmg_high == "upwind":
-            vmg_highlighter.plot_vmg_segment(overall_highlights[0], "Upwind VMG-high")
-        elif plot_vmg_high == "downwind:":
-            vmg_highlighter.plot_vmg_segment(overall_highlights[1], "Downwind VMG-high")
-        elif plot_vmg_high == "both":
-            vmg_highlighter.plot_vmg_segment(overall_highlights[0], "Upwind VMG-high")
-            vmg_highlighter.plot_vmg_segment(overall_highlights[1], "Downwind VMG-high")
-
-
         # If user wants VMG highlights for each leg, then calculate and save those as well
         per_leg_or_overall = input(
             "Do you want to save VMG highlights for each leg or overall? (leg/overall): ").lower()
@@ -110,6 +99,12 @@ class Analysis:
                     if avg_or_whole == 'average':
                         downwind_data = pd.DataFrame(downwind_data.mean()).transpose()
                     leg_highlights.append(('Downwind', downwind_data))
+
+        plot_vmg = input("Do you want to plot VMG? (yes or no) > ")
+        if plot_vmg == "yes" and per_leg_or_overall == "leg":
+            vmg_highlighter.plot_vmg(overall_highlights, per_leg_or_overall == "leg", leg_highlights.copy())
+        elif plot_vmg == "yes" and per_leg_or_overall != "leg":
+            vmg_highlighter.plot_vmg(overall_highlights)
 
             # Write each entry in leg_highlights to Excel
             for idx, (direction, data) in enumerate(leg_highlights, start=1):

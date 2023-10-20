@@ -1,5 +1,6 @@
 from PlotterClass import Plotter
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 class VMG_Highlighter:
     def __init__(self, dataframe):
@@ -42,16 +43,11 @@ class VMG_Highlighter:
         # we can use the previously defined function here as well
         return self.best_vmg_highlights()
 
-    def plot_vmg_segment(self, segment, title, y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel"]):
-        """
-        Plots a given VMG segment.
 
-        Args:
-        - segment: the VMG segment to plot
-        - title (str): title for the plot
-        - y_columns (list): list of columns to be plotted along y-axis
-        """
+    def plot_leg_to_leg_vmg(self, segment1, segment2, leg, y_columns):
+        pass
 
+    def plot_vmg_segment(self, segment, title, y_columns):
         if not segment.empty:
             x_values = segment["Time"]
 
@@ -59,23 +55,72 @@ class VMG_Highlighter:
             if "Boat.TWA" in segment.columns:
                 segment.loc[:, "Boat.TWA"] = segment["Boat.TWA"].abs()
 
-            # Create the Plotter instance
-            plotter = Plotter(x_values=x_values,
-                              title=title,
-                              xlabel="Time",
-                              ylabel="Value")
+            if "Boat.VMG_kts" in segment.columns:
+                segment.loc[:, "Boat.VMG_kts"] = segment["Boat.VMG_kts"].abs()
+
+
+            # Create the Plotter instance for individual subplots
+            plotter_subplots = Plotter(x_values=x_values,
+                                       title=title,
+                                       xlabel="Time",
+                                       ylabel="Value")
 
             # Plot the individual subplots
             rows, cols = Plotter.determine_subplot_dimensions(len(y_columns))
-            plotter.plot_subplots(y_columns, segment, title, rows, cols)
 
-            # Plot all columns together
-            for column in y_columns:
-                if column in segment.columns:
-                    y_values = segment[column]
-                    plotter.add_line(y_values, label=column)
+            # Create a figure and axes objects here for individual subplots
+            fig, axs = plt.subplots(nrows=rows, ncols=cols, figsize=(15, 10))  # Adjust the figsize if necessary
 
-            plotter.plot()
+            plotter_subplots.plot_subplots(y_columns, segment, title, rows, cols, fig, axs)
+
+            self.plot_many_variables_together(segment, ["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA"])
+            plt.show()
 
         else:
             print(f"No {title} found in VMG highlights.")
+
+    def plot_many_variables_together(self, segment, col_combo, title = "Combo"):
+
+        if not segment.empty:
+            x_values = segment["Time"]
+
+            if "Boat.TWA" in segment.columns:
+                segment.loc[:, "Boat.TWA"] = segment["Boat.TWA"].abs()
+
+            if "Boat.VMG_kts" in segment.columns:
+                segment.loc[:, "Boat.VMG_kts"] = segment["Boat.VMG_kts"].abs()
+
+            plotter_combined = Plotter(x_values=x_values,
+                                       title=title + " - Combined",
+                                       xlabel="Time",
+                                       ylabel="Value")
+
+            # Plot all columns together
+            for column in col_combo:
+                if column in segment.columns:
+                    y_values = segment[column]
+                    plotter_combined.add_line(y_values, label=column)
+
+            plotter_combined.plot()
+
+    def plot_vmg(self, segment, vmg=False, leg_highlights=[]):
+
+        y_columns = ["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.Aero.MainTraveller"]
+
+
+        self.plot_vmg_segment(segment[0], "Upwind VMG-high", y_columns)
+        self.plot_vmg_segment(segment[1], "Downwind VMG-high", y_columns)
+
+
+        # if vmg:
+        #     plot_differences = input("Do you want to plot the best and worst VMG-legs next to eachother? (yes/no) > ")
+        #     if plot_differences == "yes":
+        #         for i, tuple in enumerate(leg_highlights):
+        #             if tuple[0] == "Upwind":
+        #                 for j in range(i, len(leg_highlights)):
+        #                     if leg_highlights[j][0] == "Upwind":
+        #                         self.plot_leg_to_leg_vmg(tuple[1], leg_highlights[j][1], "Upwind", y_columns)
+        #             if tuple[0] == "Downwind":
+        #                 for j in range(i, len(leg_highlights)):
+        #                     if leg_highlights[j][0] == "Downwind":
+        #                         self.plot_leg_to_leg_vmg(tuple[1], leg_highlights[j][1], "Downwind", y_columns)
