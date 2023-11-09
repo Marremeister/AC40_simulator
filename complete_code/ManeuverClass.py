@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-
+#
 #TODO - VMG och boatspeed
 #TODO - Enskilda grafer på roder, heel, travare
 #TODO - heel - travare samma

@@ -1,7 +1,7 @@
 from PlotterClass import Plotter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-
+#
 #TODO - plot average TWA, VMG, Boat_speed
 
 class VMG_Highlighter:

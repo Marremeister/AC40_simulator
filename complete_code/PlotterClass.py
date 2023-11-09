@@ -1,6 +1,6 @@
 import os
 import matplotlib.pyplot as plt
-
+#
 class Plotter:
     def __init__(self, x_values, title="", xlabel="", ylabel="", plot_style="line", ax=None):
         self.x_values = x_values
