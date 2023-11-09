@@ -9,14 +9,16 @@ from datetime import datetime
 
 
 class Analysis:
-    def __init__(self, dataframe):
+    def __init__(self, dataframe, input_path):
         self.df = dataframe
         self.legs = []
         self.excel_writer = None
+        self.collective_excel_writer = None
         self.output_path = ''
         self.filename = ''
         self.analyze_maneuvers = ''
         self.highlight_vmg = ''
+        self.input_path = input_path[:-5]
 
     def _identify_legs(self):
         leg_identifier = LegIdentifier(self.df)
@@ -31,7 +33,7 @@ class Analysis:
         return path if path else os.getcwd()
 
     def _setup_filename(self):
-        today_date = datetime.today().strftime('%Y%m%d')
+        today_date = self.input_path
         filename_parts = [today_date]
 
         self.analyze_maneuvers = input("Do you want to analyze maneuvers? (yes/no): ").lower()
@@ -46,6 +48,7 @@ class Analysis:
 
     def _init_excel_writer(self):
         self.excel_writer = ExcelWriter(os.path.join(self.output_path, self.filename))
+        self.collective_excel_writer = ExcelWriter("Collective_data.xlsx")
 
     def _analyze_maneuvers(self):
         maneuvers = Maneuver(self.df)
@@ -75,6 +78,10 @@ class Analysis:
                 data = pd.DataFrame(data.mean()).transpose()
             if data is not None:
                 self.excel_writer.write_data(data, f"OverallVMGHighlight{idx}")
+                self.collective_excel_writer.write_data(data, f"OverallVMGHighlight{idx}")
+
+
+
 
         # If user wants VMG highlights for each leg, then calculate and save those as well
         per_leg_or_overall = input(
@@ -100,15 +107,15 @@ class Analysis:
                         downwind_data = pd.DataFrame(downwind_data.mean()).transpose()
                     leg_highlights.append(('Downwind', downwind_data))
 
+            # Write each entry in leg_highlights to Excel
+            for idx, (direction, data) in enumerate(leg_highlights, start=1):
+                self.excel_writer.write_data(data, f"LegVMGHighlight{direction}{idx}")
+
         plot_vmg = input("Do you want to plot VMG? (yes or no) > ")
         if plot_vmg == "yes" and per_leg_or_overall == "leg":
             vmg_highlighter.plot_vmg(overall_highlights, per_leg_or_overall == "leg", leg_highlights.copy())
         elif plot_vmg == "yes" and per_leg_or_overall != "leg":
             vmg_highlighter.plot_vmg(overall_highlights)
-
-            # Write each entry in leg_highlights to Excel
-            for idx, (direction, data) in enumerate(leg_highlights, start=1):
-                self.excel_writer.write_data(data, f"LegVMGHighlight{direction}{idx}")
 
     def _save_data(self):
         self.excel_writer.save()

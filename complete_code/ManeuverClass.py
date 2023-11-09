@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 #TODO - Enskilda grafer på roder, heel, travare
 #TODO - heel - travare samma
 
+
 class Maneuver:
     def __init__(self, dataframe):
         self.df = dataframe
@@ -112,8 +113,10 @@ class Maneuver:
         tack_plotter.plot()
 
     def plot_best_maneuver(self, maneuver_type,
-                           y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.FoilPort.Cant",
-                                      "Boat.FoilStbd.Cant", "Boat.Rudder.Angle", "Boat.trim"], display_all="best"):
+                           y_columns=None, display_all="best"):
+        if y_columns is None:
+            y_columns = ["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel", "Boat.FoilPort.Cant",
+                         "Boat.FoilStbd.Cant", "Boat.Rudder.Angle", "Boat.trim"]
         # Select the maneuver list based on the type
         maneuvers = self.gybes if maneuver_type == "gybe" else self.tacks
 
@@ -161,8 +164,10 @@ class Maneuver:
             print(f"No best {maneuver_type} found in maneuvers.")
 
     def plot_best_to_worst_maneuver(self, maneuver_type,
-                                    y_columns=["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel",
-                                               "Boat.Rudder.Angle", "Boat.Trim"]):
+                                    y_columns=None):
+        if y_columns is None:
+            y_columns = ["Boat.VMG_kts", "Boat.Speed_kts", "Boat.TWA", "Boat.Heel",
+                                               "Boat.Rudder.Angle", "Boat.Trim"]
         maneuvers = self.gybes if maneuver_type == "gybe" else self.tacks
 
         # Check if maneuvers list has elements before accessing its indices

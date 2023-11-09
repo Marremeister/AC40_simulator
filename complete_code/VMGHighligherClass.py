@@ -2,11 +2,13 @@ from PlotterClass import Plotter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+#TODO - plot average TWA, VMG, Boat_speed
+
 class VMG_Highlighter:
     def __init__(self, dataframe):
         self.df = dataframe
 
-    def _is_valid_window(self, start_idx, twa_range, window_size=210):  # Adjusted window size to 210
+    def _is_valid_window(self, start_idx, twa_range, window_size=210): # Adjusted window size to 210
         twa_values = self.df.iloc[start_idx:start_idx + window_size]['Boat.TWA'].abs().values
         cant_port_values = self.df.iloc[start_idx:start_idx + window_size]['Boat.FoilPort.Cant'].values
         cant_stbd_values = self.df.iloc[start_idx:start_idx + window_size]['Boat.FoilStbd.Cant'].values
@@ -16,8 +18,9 @@ class VMG_Highlighter:
 
         return valid_twa and valid_cant
 
-    def _compute_best_vmg_for_window(self, twa_range):
-        window_size = 210  # 7-second window at 30Hz
+    def _compute_best_vmg_for_window(self, twa_range, leg):
+        highlight_time = int(input(f"How long should the {leg} VMG-segment be? < "))
+        window_size = 30*highlight_time  # 7-second window at 30Hz
         best_start_idx = None
         best_avg_vmg = float('-inf')
 
@@ -33,8 +36,8 @@ class VMG_Highlighter:
         return self.df.iloc[best_start_idx:best_start_idx + window_size] if best_start_idx is not None else None
 
     def best_vmg_highlights(self):
-        upwind_data = self._compute_best_vmg_for_window((35, 60))
-        downwind_data = self._compute_best_vmg_for_window((125, 155))
+        upwind_data = self._compute_best_vmg_for_window((35, 60), "Upwind")
+        downwind_data = self._compute_best_vmg_for_window((125, 155), "Downwind")
 
         return upwind_data, downwind_data
 
@@ -112,15 +115,3 @@ class VMG_Highlighter:
         self.plot_vmg_segment(segment[1], "Downwind VMG-high", y_columns)
 
 
-        # if vmg:
-        #     plot_differences = input("Do you want to plot the best and worst VMG-legs next to eachother? (yes/no) > ")
-        #     if plot_differences == "yes":
-        #         for i, tuple in enumerate(leg_highlights):
-        #             if tuple[0] == "Upwind":
-        #                 for j in range(i, len(leg_highlights)):
-        #                     if leg_highlights[j][0] == "Upwind":
-        #                         self.plot_leg_to_leg_vmg(tuple[1], leg_highlights[j][1], "Upwind", y_columns)
-        #             if tuple[0] == "Downwind":
-        #                 for j in range(i, len(leg_highlights)):
-        #                     if leg_highlights[j][0] == "Downwind":
-        #                         self.plot_leg_to_leg_vmg(tuple[1], leg_highlights[j][1], "Downwind", y_columns)
